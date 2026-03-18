@@ -1,0 +1,51 @@
+PE console
+
+entry start
+
+include 'qsr.asm'
+include 'qsr2.asm'
+include 'qsfd.asm'
+
+macro error num
+{
+	
+ 	mov eax, [num]
+	mov eax, [num]
+	add eax, eax
+	mov [num], eax
+    
+}
+
+section '.data' data readable writable
+y dd ??
+
+section '.code' code readable executable
+
+section '.code' code readable executable
+    start:
+mov eax, -1
+mov [y], eax
+; CALL error
+error 12
+section '.idata' import data readable
+            library kernel, 'kernel32.dll',\
+                    msvcrt, 'msvcrt.dll',\
+                    user, 'user32.dll'
+            import kernel,\
+                ExitProcess, 'ExitProcess',\
+                SetConsoleTitle, 'SetConsoleTitleA',\
+                GetStdHandle, 'GetStdHandle',\
+                SetConsoleTextAttribute, 'SetConsoleTextAttribute',\
+                SetConsoleCursorPosition, 'SetConsoleCursorPosition',\
+                GetProcessHeap, 'GetProcessHeap',\
+                HeapAlloc, 'HeapAlloc',\
+                HeapFree, 'HeapFree',\
+                VirtualAlloc, 'VirtualAlloc',\
+                VirtualFree, 'VirtualFree',\
+                WriteConsoleA, 'WriteConsoleA'
+            import msvcrt,\
+                printf, 'printf',\
+                getch, '_getch',\
+                scanf, 'scanf'
+            import user,\
+                MessageBox, 'MessageBoxA'

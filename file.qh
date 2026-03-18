@@ -1,0 +1,9 @@
+
+void CreateDirectory (string path)
+{
+	asm
+	mov ecx, [path]
+	push ecx
+	call [CreateDirectoryA]
+	asm
+}

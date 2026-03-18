@@ -1,0 +1,111 @@
+// ...Структуры...
+
+struct Array <T>
+{
+	T* Items;
+	int32 Count;
+	int32 ItemSize;
+}
+
+int32  Array.init(int32 size) <T>
+{
+	int32 size_t = typeof.T;
+	size_t *= size;
+	return malloc(size_t);
+}
+
+int32 new() <T>
+{
+	int32 size_t = typeof.T;
+	return malloc(size_t);
+}
+void copy(T left, T right) <T>
+{
+	int32 size = typeof.T;
+	int32 ptr
+	int32 ptrto
+    asm
+	mov eax, [left]
+	mov [ptr], eax
+	mov eax, [right]
+	mov [ptrto], eax
+    mov esi, [ptr]
+	mov edi, [ptrto]
+	mov ecx, [size]
+	shr ecx, 2
+    rep movsd
+	asm
+}
+int32 salloc () @T
+{
+	int32 size_t = typeof.T
+	int32 ptr
+	asm
+	mov [ptr], esp
+	sub esp, [size_t]
+	asm
+	return ptr
+}
+void sfree () @T
+{
+	int32 size_t = typeof.T
+	asm
+	add esp, [size_t]
+	asm
+}
+
+//struct Nums <T>
+//{
+	//T* Items;
+	//int32 Count;
+	//int32 ItemSize;
+//}
+
+
+// ...Функции...
+
+void printq(int32 data) <T>
+{
+	int32 format = 1;
+	T form; 
+	asm
+	mov [form], 250
+	add [form], 10
+	jc .trueP
+	jmp .falseP
+	.trueP:
+	mov [format], 0
+	.falseP:
+	asm
+	
+	if format == 0
+	{
+		asm
+		mov eax, [data];
+		asm
+		qsr.printf(eax);
+	}
+	if format == 1
+	{
+		asm
+		cmp [data], 0
+		jne .falseD
+		asm
+		qsr.printf("0");
+		asm
+        .falseD:
+		asm
+		qsr.printva(data);
+	}
+}
+
+
+inline qsr.PoolPrint()
+{
+	printq<string>("PoolPtr = "); printq<int32>(qsr.Pool.PoolPtr); Console.endl();
+	printq<string>("PoolTotalSize = "); printq<int32>(qsr.Pool.PoolTotalSize);
+	Console.endl();
+    printq<string>("PoolMaxSize = "); printq<int32>(qsr.Pool.PoolMaxSize); Console.endl();
+	printq<string>("PoolItemCount = "); printq<int32>(qsr.Pool.PoolItemCount);
+	Console.endl();
+}

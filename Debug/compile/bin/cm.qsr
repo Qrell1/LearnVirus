@@ -1,0 +1,918 @@
+format PE console
+
+entry start
+include 'win32a.inc'
+include 'lib/opengl.inc'
+
+macro qsr.printf message
+{
+    push ebx
+    mov edi, message
+    call qsr_len_string
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push ebx
+    push edi
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop ebx
+}
+macro qsr.printfl message
+{
+	push message
+	push strFormat
+	call [printf]
+	add esp, 8
+	Console.endl
+}
+macro qsr.printc 
+{
+	mov [qsr.Console.ConsoleChar], al
+ 
+    push ebx
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push 1
+    push qsr.Console.ConsoleChar
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop ebx
+}
+macro qsr.printv message
+{
+	push message
+	push varFormat
+	call [printf]
+	add esp, 8
+}
+macro qsr.printva message
+{
+	push ebx
+    push eax
+    mov eax, [message]
+    call qsr_uint_to_str
+    call qsr_len_string
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push ebx
+    push edi
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop eax
+    pop ebx
+}
+macro qsr.printvaf message
+{
+	sub esp, 8
+    fld dword [message]
+    fstp qword [esp]
+    push floatFormat
+    call [printf]
+    add esp, 12
+}
+macro Console.getch 
+{
+	call [getch]
+}
+macro Console.endl 
+{
+	push endl
+	push strFormat
+	call [printf]
+	add esp, 8
+}
+macro Console.cin var
+{
+	lea eax, [var]
+	push eax
+	push varFormat
+	call [scanf]
+	add esp, 8
+}
+macro Console.clear 
+{
+	invoke  WriteConsoleA, [qsr.Console.ConsoleHandle], clear, 6, qsr.Console.ConsoleTempPtr, 0
+}
+macro Array.init list,len,size
+{
+	mov [list +Array_int32.Items], esp
+	mov eax, size
+	mov ebx, len
+	imul eax, ebx
+	sub esp, eax
+	mov eax, len
+	mov [list +Array_int32.Count], eax
+	mov [list +Array_int32.ItemSize], size
+}
+macro Array.clear list
+{
+	mov eax, [list.Count]
+	mov ebx, [list.ItemSize]
+	imul eax, ebx
+	add esp, eax
+	mov [list.Items], 0
+	mov [list.Count], 0
+	mov [list.ItemSize], 0
+}
+macro qsr.GetConsoleHandle 
+{
+    invoke GetStdHandle, STD_OUTPUT_HANDLE
+    mov [qsr.Console.ConsoleHandle], eax
+    xor eax, eax
+}
+macro qsr.init 
+{
+qsr.GetConsoleHandle 
+}
+struct console
+    ConsoleHandle dd 0
+    ConsoleBuffer dd 0
+    ConsoleTempPtr dd 0
+    ConsoleCharBuffer db 0
+    ConsoleChar db 0
+    ConsoleBytesRead dd 0
+ends
+struct Qsr
+    Console console 0
+ends
+struct WindowProgram
+    as dd 0
+    as2 dd 0
+ends
+macro CreateWindow w,h
+{
+    invoke CreateWindowEx,0,ClassName,WindowTitle,\
+           WS_VISIBLE+WS_OVERLAPPEDWINDOW,\
+           100,100,w,h,0,0,[Instance],0
+}
+struct Window
+    Style dd 0
+    lpfnWndProc dd 0
+    cbClsExtra dd 0
+    cbWndExtra dd 0
+    hInstance dd 0
+    hIcon dd 0
+    hCursor dd 0
+    hbrBackground dd 0
+    lpszMenuName dd 0
+    lpszClassName dd 0
+    hWindow dd 0
+ends
+struct SystemWindowContext
+    window dd 0
+ends
+struct Array_int32
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+struct Nums_int32
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+struct ArraySS_int32
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+
+section '.data' data readable writable
+str_const_0 db 'list.Items[5]=', 0
+str_const_1 db '%s', 0
+str_const_2 db '%d', 0
+str_const_3 db 'FDF', 0
+str_const_4 db 'Console.ConsoleHandle = ', 0
+str_const_5 db 'Testing', 0
+str_const_6 db 'print(', 0
+str_const_7 db ')', 0
+str_const_8 db 'Fuck Off', 0
+str_const_9 db 'ds', 0
+str_const_10 db '12.4f >= 12.3f', 0
+str_const_11 db 'push in low pool', 0
+str_const_12 db 'Tick:', 0
+str_const_13 db 'Window Update!', 0
+SIZE_CONSOLE = sizeof.console
+ SIZE_QSR = sizeof.Qsr
+ qsr Qsr 0
+ list Array_int32 0
+ i dd 0
+ sd dd 0
+ gchars Array_int32 0
+ gcharsI dd 0
+ chsi dd 0
+ adsd dd 0
+ dff db 0
+ dffs dd 0
+ size dd 0
+ sizeofTest dw 0
+ tick dd 0
+ tick2 dd 0
+ numbers Nums_int32 0
+ irepn dd 0
+ testConstVar dd 0
+ testConstVar2 dd 0
+ GgG dd 0
+ irepnv dd 0
+ array dd 0
+ irep dd 0
+ SIZE_WINDOWPROGRAM = sizeof.WindowProgram
+ Instance dd 0
+ SIZE_WINDOW = sizeof.Window
+ SIZE_SYSTEMWINDOWCONTEXT = sizeof.SystemWindowContext
+ WindowContext SystemWindowContext 0
+ window WindowProgram 0
+ sasa1 dd 0
+ sasa dd 0
+ KEYTEST dd 0
+ SIZE_ARRAY_INT32 = sizeof.Array_int32
+ SIZE_NUMS_INT32 = sizeof.Nums_int32
+ SIZE_ARRAYSS_INT32 = sizeof.ArraySS_int32
+ 
+section '.code' code readable executable
+proc qsr_len_string
+push edi
+xor ebx,ebx
+.next_iter: 
+cmp [edi+ebx],byte 0
+je .close
+inc ebx
+jmp .next_iter
+.close: 
+pop edi
+ret 
+qsr_len_string.retn: 
+ret 
+endp
+proc qsr_uint_to_str
+push ebx
+push ecx
+push edx
+mov edi,qsr.Console.ConsoleBuffer + 11
+mov byte [edi],0
+dec edi
+mov ebx,10
+test eax,eax
+jnz .convert
+mov byte [edi],'0'
+jmp .done
+.convert: 
+xor edx,edx
+div ebx
+add dl,'0'
+mov [edi],dl
+dec edi
+test eax,eax
+jnz .convert
+.done: 
+inc edi
+pop edx
+pop ecx
+pop ebx
+ret 
+qsr_uint_to_str.retn: 
+ret 
+endp
+proc qsr.getTick var:DWORD
+local resualt dd 0
+invoke GetTickCount
+mov [resualt],eax
+mov eax,[resualt]
+jmp qsr.getTick.return
+qsr.getTick.return: 
+qsr.getTick.retn: 
+ret 
+endp
+proc Console.Write form:DWORD ,data:DWORD
+local format dd 0
+mov eax,[form]
+cmp [eax],word '%s'
+je .ConsoleWrite.fl1
+jne .ConsoleWrite.fl2
+.ConsoleWrite.fl1: 
+mov [format],0
+jmp .ConsoleWrite.fl
+.ConsoleWrite.fl2: 
+mov [format],1
+.ConsoleWrite.fl: 
+mov eax,[format]
+cmp eax,0
+jne .false0
+mov eax,[data]
+qsr.printf eax
+.false0: 
+mov eax,[format]
+cmp eax,1
+jne .false1
+qsr.printva data
+.false1: 
+Console.Write.retn: 
+ret 
+endp
+proc Console.WriteLine form:DWORD ,data:DWORD
+local format dd 0
+mov eax,[form]
+cmp [eax],word '%s'
+je .ConsoleWriteLine.fl1
+jne .ConsoleWriteLine.fl2
+.ConsoleWriteLine.fl1: 
+mov [format],0
+jmp .ConsoleWriteLine.fl
+.ConsoleWriteLine.fl2: 
+mov [format],1
+.ConsoleWriteLine.fl: 
+mov eax,[format]
+cmp eax,0
+jne .false2
+mov eax,[data]
+qsr.printf eax
+.false2: 
+mov eax,[format]
+cmp eax,1
+jne .false3
+qsr.printva data
+.false3: 
+Console.endl 
+Console.WriteLine.retn: 
+ret 
+endp
+proc write form:DWORD ,data:DWORD
+local format dd 0
+mov eax,[form]
+cmp [eax],word '%s'
+je .ConsoleWrite.fl1
+jne .ConsoleWrite.fl2
+.ConsoleWrite.fl1: 
+mov [format],0
+jmp .ConsoleWrite.fl
+.ConsoleWrite.fl2: 
+mov [format],1
+.ConsoleWrite.fl: 
+mov eax,[format]
+cmp eax,0
+jne .false4
+mov eax,[data]
+qsr.printf eax
+.false4: 
+mov eax,[format]
+cmp eax,1
+jne .false5
+qsr.printva data
+.false5: 
+write.retn: 
+ret 
+endp
+proc writeln form:DWORD ,data:DWORD
+local format dd 0
+mov eax,[form]
+cmp [eax],word '%s'
+je .ConsoleWriteLine.fl1
+jne .ConsoleWriteLine.fl2
+.ConsoleWriteLine.fl1: 
+mov [format],0
+jmp .ConsoleWriteLine.fl
+.ConsoleWriteLine.fl2: 
+mov [format],1
+.ConsoleWriteLine.fl: 
+mov eax,[format]
+cmp eax,0
+jne .false6
+mov eax,[data]
+qsr.printf eax
+.false6: 
+mov eax,[format]
+cmp eax,1
+jne .false7
+qsr.printva data
+.false7: 
+Console.endl 
+writeln.retn: 
+ret 
+endp
+proc fntest1
+mov eax,32
+jmp fntest1.return
+fntest1.return: 
+fntest1.retn: 
+ret 
+endp
+proc fntest2 n:DWORD
+mov eax,[n]
+add eax,[n]
+jmp fntest2.return
+fntest2.return: 
+fntest2.retn: 
+ret 
+endp
+proc fibonacci nnn:DWORD
+mov eax,[nnn]
+jmp fibonacci.return
+fibonacci.return: 
+fibonacci.retn: 
+ret 
+endp
+proc mmll
+mov eax,1
+jmp mmll.return
+mmll.return: 
+mmll.retn: 
+ret 
+endp
+proc WindowProc hwnd:DWORD ,wmsg:DWORD ,wparam:DWORD ,lparam:DWORD
+cmp [wmsg],WM_DESTROY
+je .wmdestroy
+lea eax,[WindowContext]
+push eax
+call Update_Window
+invoke DefWindowProcA,[hwnd],[wmsg],[wparam],[lparam]
+ret 
+.wmdestroy: 
+invoke PostQuitMessage,0
+xor eax,eax
+ret 
+WindowProc.retn: 
+ret 
+endp
+proc fib nnn:DWORD ,memo:DWORD
+mov eax,[nnn]
+mov ecx,eax
+imul ecx,4
+mov ebx,[memo,Items]
+mov eax,[ebx+ecx]
+cmp eax,0
+je .false10
+mov eax,[nnn]
+mov ecx,eax
+imul ecx,4
+mov edx,[memo]
+mov ebx,[edx + ArraySS_int32.Items]
+mov eax,[ebx+ecx]
+jmp fib.return
+.false10: 
+mov eax,[nnn]
+cmp eax,1
+jg .false11
+mov eax,[nnn]
+jmp fib.return
+jmp .elses0
+.false11: 
+local resualt dd 0
+mov eax,[nnn]
+sub eax,1
+push eax
+call fib
+push eax
+mov eax,[nnn]
+sub eax,2
+push eax
+call fib
+mov ebx,eax
+pop eax
+add eax,ebx
+mov [resualt],eax
+mov eax,[resualt]
+push eax
+mov eax,[nnn]
+mov ecx,eax
+imul ecx,4
+mov edx,[memo]
+mov ebx,[edx + ArraySS_int32.Items]
+pop eax
+mov [ebx+ecx],eax
+mov eax,[resualt]
+jmp fib.return
+.elses0: 
+fib.return: 
+fib.retn: 
+ret 
+endp
+proc func_WindowProgram this:DWORD
+func_WindowProgram.retn: 
+ret 
+endp
+proc Create_Window this:DWORD ,w:DWORD ,h:DWORD ,className:DWORD ,windowTitle:DWORD
+push ebx
+push esi
+push edi
+mov edx,[this]
+mov ecx,[className]
+mov [edx + Window.lpszClassName],ecx
+mov edx,[this]
+mov ecx,[windowTitle]
+mov [edx + Window.lpszMenuName],ecx
+mov eax,WindowProc
+mov [edx + Window.lpfnWndProc],eax
+invoke GetModuleHandle,0
+mov [edx + Window.hInstance],eax
+push edx
+call [RegisterClassA]
+mov edx,[this]
+mov eax,[edx + Window.lpszClassName]
+mov ebx,[edx + Window.lpszMenuName]
+push 0
+push [edx + Window.hInstance]
+push 0
+push 0
+push [h]
+push [w]
+push 100
+push 100
+push WS_VISIBLE+WS_OVERLAPPEDWINDOW
+push ebx
+push eax
+push 0
+call [CreateWindowExA]
+mov [edx + Window.hWindow],eax
+pop edi
+pop esi
+pop ebx
+mov eax,[this]
+mov [WindowContext + SystemWindowContext.window],eax
+Create_Window.retn: 
+ret 
+endp
+proc Update_Window this:DWORD
+push str_const_13
+call printq_string
+Console.endl 
+Update_Window.retn: 
+ret 
+endp
+proc printq_string data:DWORD
+local format dd 0
+mov [format],dword 1
+local form db 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+mov eax,[format]
+cmp eax,0
+jne .false12
+mov eax,[data]
+qsr.printf eax
+.false12: 
+mov eax,[format]
+cmp eax,1
+jne .false13
+qsr.printva data
+.false13: 
+printq_string.retn: 
+ret 
+endp
+proc printq_int32 data:DWORD
+local format dd 0
+mov [format],dword 1
+local form dd 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+mov eax,[format]
+cmp eax,0
+jne .false14
+mov eax,[data]
+qsr.printf eax
+.false14: 
+mov eax,[format]
+cmp eax,1
+jne .false15
+qsr.printva data
+.false15: 
+printq_int32.retn: 
+ret 
+endp
+proc printq_int8 data:DWORD
+local format dd 0
+mov [format],dword 1
+local form db 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+mov eax,[format]
+cmp eax,0
+jne .false16
+mov eax,[data]
+qsr.printf eax
+.false16: 
+mov eax,[format]
+cmp eax,1
+jne .false17
+qsr.printva data
+.false17: 
+printq_int8.retn: 
+ret 
+endp
+proc Nums.init_int32 list2:DWORD ,len2:DWORD ,size2:DWORD
+mov edx,[list2]
+mov [edx + Nums_int32.Items],esp
+mov eax,size2
+mov ebx,len2
+imul eax,ebx
+sub esp,eax
+mov eax,[len2]
+mov edx,[list2]
+mov [edx + Nums_int32.Count],eax
+mov eax,[size2]
+mov edx,[list2]
+mov [edx + Nums_int32.ItemSize],eax
+Nums.init_int32.retn: 
+ret 
+endp 
+start: ;START MAIN
+qsr.init 
+Array.init list,10,4
+mov [i],dword 0
+xor ecx,ecx
+iter1: 
+push ecx
+mov eax,[i]
+add eax,[i]
+push eax
+mov eax,[i]
+mov ecx,eax
+imul ecx,4
+mov ebx,[list.Items]
+pop eax
+mov [ebx+ecx],eax
+add [i],1
+pop ecx
+inc ecx
+cmp ecx,10
+jne iter1
+push str_const_0
+push str_const_1
+call Console.Write
+mov eax,9
+mov ecx,eax
+imul ecx,4
+mov ebx,[list.Items]
+mov eax,[ebx+ecx]
+push eax
+push str_const_2
+call Console.WriteLine
+push str_const_3
+push str_const_1
+call Console.WriteLine
+push str_const_4
+push str_const_1
+call Console.Write
+mov eax,[qsr.Console.ConsoleHandle]
+push eax
+push str_const_2
+call Console.WriteLine
+push 12
+push str_const_2
+call Console.WriteLine
+mov [sd],dword 32
+mov eax,[sd]
+push eax
+push str_const_2
+call Console.WriteLine
+call fntest1
+push eax
+push str_const_2
+call Console.WriteLine
+push 64
+call fntest2
+push eax
+push str_const_2
+call Console.WriteLine
+push 256
+call fntest2
+push eax
+push str_const_2
+call writeln
+push str_const_5
+push str_const_1
+call write
+push 1
+push str_const_2
+call writeln
+Console.endl 
+push str_const_6
+call printq_string
+push 3
+call printq_int32
+push str_const_7
+call printq_string
+Console.endl 
+push str_const_8
+call printq_string
+Array.init gchars,16,4
+xor ecx,ecx
+iter2: 
+push ecx
+push 0
+mov eax,[gcharsI]
+mov ecx,eax
+imul ecx,4
+mov ebx,[gchars.Items]
+pop eax
+mov [ebx+ecx],eax
+add [gcharsI],1
+pop ecx
+inc ecx
+cmp ecx,16
+jne iter2
+mov eax,[gchars.Items]
+add eax,4
+push eax
+push strFormat
+call [scanf]
+add esp,8
+mov [chsi],dword 0
+push 4
+mov ebx,SIZE_ARRAY_INT32
+pop eax
+add eax,ebx
+mov [adsd],eax
+xor ecx,ecx
+iter3: 
+push ecx
+mov eax,[chsi]
+mov ecx,eax
+mov ebx,[gchars.Items]
+mov al,byte [ebx+ecx]
+cmp al,' '
+je fsff
+cmp al,0
+je fsff
+qsr.printc 
+fsff: 
+add [chsi],1
+pop ecx
+inc ecx
+cmp ecx,64
+jne iter3
+mov eax,[gchars.Items]
+push eax
+push strFormat
+call [printf]
+add esp,8
+Console.endl 
+mov [size],dword 5
+inc [size]
+mov eax,[size]
+push eax
+call printq_int32
+mov eax,[size]
+inc [size]
+push eax
+call printq_int32
+Console.endl 
+mov eax,[size]
+push eax
+call printq_int32
+lea eax,[size]
+push eax
+call printq_int32
+Console.endl 
+push 2
+call printq_int32
+Console.endl 
+push SIZE_ARRAY_INT32
+call printq_int32
+Console.endl 
+push str_const_9
+call printq_string
+Console.endl 
+push str_const_10
+call printq_int8
+mov eax,SIZE_ARRAY_INT32
+cmp eax,256
+jge .false8
+push str_const_11
+call printq_int8
+.false8: 
+Console.getch 
+call qsr.getTick
+mov [tick],eax
+call qsr.getTick
+push eax
+mov eax,[tick]
+mov ebx,eax
+pop eax
+sub eax,ebx
+mov [tick],eax
+push str_const_12
+call printq_string
+mov eax,[tick]
+push eax
+call printq_int32
+Console.endl 
+lea eax,[size]
+push eax
+call printq_int32
+call qsr.getTick
+mov [tick2],eax
+call qsr.getTick
+push eax
+mov eax,[tick2]
+mov ebx,eax
+pop eax
+sub eax,ebx
+mov [tick2],eax
+push str_const_12
+call printq_string
+mov eax,[tick2]
+push eax
+call printq_int32
+push 4
+push 10
+lea eax,[numbers]
+push eax
+call Nums.init_int32
+mov [irepn],dword 1
+mov [testConstVar],dword 12
+mov [testConstVar2],dword 12
+mov eax,[testConstVar]
+push eax
+mov eax,[testConstVar2]
+mov ebx,eax
+pop eax
+cmp eax,ebx
+jne .false9
+mov [testConstVar],dword 13
+.false9: 
+call mmll
+mov [GgG],eax
+rept 10 {
+Console.endl 
+mov eax,[irepn]
+mov ecx,eax
+imul ecx,4
+mov ebx,[numbers.Items]
+mov eax,[ebx+ecx]
+mov [irepnv],eax
+qsr.printva irepnv
+inc [irep]
+mov eax,[irep]
+} 
+call mmll
+mov [array],eax
+mov [irep],dword 1
+rept 10 {
+Console.endl 
+qsr.printva irep
+inc [irep]
+mov eax,[irep]
+} 
+push eax
+push eax
+push eax
+push eax
+call glClearColor
+lea eax,[window]
+push eax
+call func_WindowProgram
+Console.getch 
+mov [sasa1],dword 15
+mov eax,[sasa1]
+mov ebx,2
+xor edx,edx
+div ebx
+mov eax,edx
+mov [sasa1],eax
+mov [sasa],eax
+section '.data' data readable writable
+varFormat db '%d',0
+strFormat db '%s',0
+floatFormat db '%f',0
+endl db 10,13,'',0
+clear db 1Bh,'[2J',1Bh,'[H',0
+STD_OUTPUT_HANDLE =-11
+section '.idata' import data readable
+library kernel,'kernel32.dll',\
+msvcrt, 'msvcrt.dll',\
+user, 'user32.dll'
+import kernel,\
+ExitProcess, 'ExitProcess',\
+SetConsoleTitle, 'SetConsoleTitleA',\
+GetStdHandle, 'GetStdHandle',\
+SetConsoleTextAttribute, 'SetConsoleTextAttribute',\
+SetConsoleCursorPosition, 'SetConsoleCursorPosition',\
+GetProcessHeap, 'GetProcessHeap',\
+HeapAlloc, 'HeapAlloc',\
+HeapFree, 'HeapFree',\
+VirtualAlloc, 'VirtualAlloc',\
+VirtualFree, 'VirtualFree',\
+WriteConsoleA, 'WriteConsoleA',\
+ReadConsoleA, 'ReadConsoleA',\
+GetTickCount, 'GetTickCount'
+import msvcrt,\
+printf, 'printf',\
+getch, '_getch',\
+scanf, 'scanf'
+import user,\
+MessageBox, 'MessageBoxA'

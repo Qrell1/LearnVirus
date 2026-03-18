@@ -1,0 +1,137 @@
+format PE console
+
+entry start
+
+
+section '.data' data readable writable
+parse dd 0
+test2 dd 0
+
+section '.code' code readable executable
+proc yy12 uses eax, num1:DWORD num2:WORD 
+ret
+endp
+proc test1 uses eax, num:DWORD 
+ret
+endp
+proc sub uses eax, num1:DWORD num2:DWORD 
+local num dd 0
+mov eax, [num1]
+push eax
+mov eax, [num2]
+mov ebx, eax
+pop eax
+add eax, ebx
+mov [num], eax
+ret
+endp
+proc sub uses eax, num1:DWORD num2:DWORD 
+local num dd 0
+mov eax, [num1]
+push eax
+mov eax, [num2]
+mov ebx, eax
+pop eax
+add eax, ebx
+mov [num], eax
+ret
+endp
+start: ;START MAIN
+mov eax, 5
+push eax
+mov eax, 5
+mov ebx, 5
+add eax, ebx
+mov ebx, eax
+pop eax
+mul eax
+mov [parse], eax
+mov eax, [parse]
+mov ebx, 5
+sub eax, ebx
+mov [parse], eax
+mov eax, [parse]
+mov ebx, 5
+sub eax, ebx
+mov [parse], eax
+mov eax, 5
+mov ebx, 5
+mul eax
+push eax
+mov eax, [parse]
+mov ebx, eax
+pop eax
+mul eax
+mov ebx, 2
+cdq
+idiv eax
+mov [parse], eax
+; FUNC yy12
+mov eax, 5
+mov ebx, 2
+mul eax
+push eax
+mov eax, 5
+mov ebx, 1
+add eax, ebx
+push eax
+call yy12
+mov [sf.parse], 12
+mov eax, 5454
+mov ebx, 64
+add eax, ebx
+mov ebx, 43
+cdq
+idiv eax
+push eax
+mov eax, 32
+push eax
+call sf.test.fg.as.yt
+; FUNC test1
+mov eax, 12
+push eax
+call test1
+push eax
+mov eax, 32
+push eax
+call test1
+mov ebx, eax
+pop eax
+add eax, ebx
+mov ebx, 2
+cdq
+idiv eax
+push eax
+mov eax, 4
+push eax
+mov eax, [reftest.ref2.var]
+push eax
+mov eax, [reftest.ref2.ref3.var]
+mov ebx, eax
+pop eax
+sub eax, ebx
+mov ebx, eax
+pop eax
+add eax, ebx
+mov ebx, eax
+pop eax
+mul eax
+mov ebx, 2
+mul eax
+mov [test2], eax
+; FUNC sub
+; FUNC sub
+; CMP
+mov eax, [r1]
+push eax
+mov eax, [r1]
+mov ebx, eax
+pop eax
+cmp eax, ebx
+jne false0
+mov eax, 1
+push eax
+mov eax, 1
+push eax
+call sub
+false0:

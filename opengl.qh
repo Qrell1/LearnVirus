@@ -1,0 +1,356 @@
+using "lib/opengl.inc";
+include "openglstructs.qh";
+
+
+inline CreateWindow (int32 w, int32 h)
+{
+	asm
+    invoke CreateWindowExA,0,ClassName,WindowTitle,\
+           WS_VISIBLE+WS_OVERLAPPEDWINDOW,\
+           100,100,w,h,0,0,[Instance],0
+    asm
+}
+
+//int32 Instance;
+
+class Window {
+
+     int32 Style
+	 int32 lpfnWndProc
+	 int32 cbClsExtra
+	 int32 cbWndExtra
+	 int32 hInstance
+	 int32 hIcon
+	 int32 hCursor
+	 int32 hbrBackground
+	 string* lpszMenuName
+	 string* lpszClassName
+	 int32 hWindow
+
+    void Create (int32 w, int32 h, string* className, string* windowTitle)
+	{
+		asm
+		push ebx
+        push esi
+        push edi
+        asm
+
+        this.lpszClassName = className
+        this.lpszMenuName = windowTitle
+
+        asm
+		mov eax, WindowProc
+        mov [edx + Window.lpfnWndProc], eax
+		asm
+
+		asm
+	    invoke GetModuleHandleA,0
+        mov [edx + Window.hInstance],eax
+		//mov ecx, [this]
+		push edx
+        call [RegisterClassA]
+	    asm
+		asm
+		mov edx, [this]
+		mov eax, [edx + Window.lpszClassName]
+		mov ebx, [edx + Window.lpszMenuName]
+
+        //mov ecx, [this]
+		push 0         
+        push [edx + Window.hInstance]                                
+        push 0                
+        push 0
+        push [h]
+        push [w]
+        push 100                                   
+        push 100                                  
+        push WS_VISIBLE+WS_OVERLAPPEDWINDOW       
+        push ebx                                  
+        push eax                              
+        push 0                                  
+        call [CreateWindowExA]
+		
+	    mov [edx + Window.hWindow], eax
+
+        pop edi
+        pop esi
+        pop ebx
+		//push eax
+        //push GWL_USERDATA
+		//lea ecx, [this]
+        //push ecx
+        //call [SetWindowLongPtrA]
+
+        mov eax, [this]
+		mov [WindowContext + SystemWindowContext.window], eax
+		asm
+	}
+    void OnUpdate ()
+	{
+		
+	}
+	void OnResize ()
+	{
+		printq @string ("OnResize") Console.endl()
+	}
+}
+
+class OpenGlContext {
+	int32 hDC
+    int32 hRC
+    int32 width
+    int32 height
+    PixelFormatDescriptor pfd
+
+    void InitOpenGl (int32 hWindow, int32 w, int32 h)
+	{
+	asm
+	    mov eax, [w]
+		mov [this + OpenGlContext.width], eax
+		mov eax, [h]
+		mov [this + OpenGlContext.height], eax
+
+        mov eax, [hWindow]
+		push eax
+        call [GetDC]
+        mov [this + OpenGlContext.hDC], eax
+
+        lea edx, [this + OpenGlContext.pfd]
+        mov [edx + PixelFormatDescriptor.nSize], 40
+        mov [edx + PixelFormatDescriptor.nVersion], 1
+		mov eax, PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER
+        mov [edx + PixelFormatDescriptor.dwFlags], eax
+        mov [edx + PixelFormatDescriptor.iPixelType], PFD_TYPE_RGBA
+        mov [edx + PixelFormatDescriptor.cColorBits], 32
+        mov [edx + PixelFormatDescriptor.cDepthBits], 16
+        mov [edx + PixelFormatDescriptor.iLayerType], PFD_MAIN_PLANE
+        
+        lea eax, [this + OpenGlContext.pfd]
+        push eax
+        push [this + OpenGlContext.hDC]
+        call [ChoosePixelFormat]
+        
+        lea ebx, [this + OpenGlContext.pfd]
+        push ebx
+        push eax
+        push [this + OpenGlContext.hDC]
+        call [SetPixelFormat]
+        
+        push [this + OpenGlContext.hDC]
+        call [wglCreateContext]
+        mov [this + OpenGlContext.hRC], eax
+        
+        push eax
+        push [this + OpenGlContext.hDC]
+        call [wglMakeCurrent]
+		mov eax, [this]
+		mov [WindowContext.context], eax
+    asm
+	}
+
+    void MakeCurrent ()
+    {
+    asm
+        push [this + OpenGlContext.hRC]
+        push [this + OpenGlContext.hDC]
+        call [wglMakeCurrent]
+		mov eax, [this]
+		mov [WindowContext.context], eax
+    asm
+    }
+
+    void SwapBuffers ()
+    {
+    asm
+        push [this + OpenGlContext.hDC]
+        call [SwapBuffers]
+    asm
+    }
+
+    void Clear()// (float r, float g, float b)
+    {
+    asm
+        //push 1.0
+        //push [b]
+        //push [g]
+        //push [r]
+        //call [glClearColor]
+        
+        push GL_COLOR_BUFFER_BIT
+        call [glClear]
+    asm
+    }
+}
+void WindowProc (int32 hwnd, int32 wmsg, int32 wparam, int32 lparam)
+{
+	asm
+	cmp [wmsg],WM_DESTROY
+    je .wmdestroy
+	cmp [wmsg],WM_SIZE
+	je .wmsize
+	cmp [wmsg],WM_PAINT
+	je .wmpaint
+	asm
+	WindowContext.window.OnUpdate() // Update Window
+    asm
+    invoke DefWindowProcA,[hwnd],[wmsg],[wparam],[lparam]
+    ret
+.wmpaint:
+    mov eax, [WindowContext.context]
+	cmp eax, 0
+
+    jne .f1
+    xor eax, eax
+	ret
+    .f1:
+      
+    push [eax + OpenGlContext.hRC]
+    push [eax + OpenGlContext.hDC]
+    call [wglMakeCurrent]
+	
+    push 1.0        // alpha
+    push 0.0        // blue
+    push 1.0        // green
+    push 1.0        // red
+    call [glClearColor]
+    
+    push GL_COLOR_BUFFER_BIT
+    call [glClear]
+        
+    mov edx, [WindowContext.context]
+	mov eax, [edx + OpenGlContext.hDC]
+	push eax
+    call [SwapBuffers]
+        
+    //push 0
+    //push [hwnd]
+    //call [ValidateRect]
+    xor eax, eax
+    ret
+.wmdestroy:
+    invoke PostQuitMessage,0
+    xor eax,eax
+.wmsize:
+    mov eax, [lparam]
+    movzx ecx, ax      
+    shr eax, 16             
+    movzx edx, ax        
+
+    asm
+	WindowContext.window.OnResize()
+    asm
+    //invoke glViewport, 0, 0, ecx, edx
+    
+    //invoke glMatrixMode, GL_PROJECTION
+    //invoke glLoadIdentity
+    //invoke glOrtho, 0, ecx, edx, 0, -1, 1  ; для 2D игр
+    //invoke glMatrixMode, GL_MODELVIEW
+    
+    //invoke InvalidateRect, [hwnd], 0, 1
+    xor eax, eax
+    ret
+    asm
+}
+
+struct SystemWindowContext {
+	Window* window
+	OpenGlContext* context
+}
+
+SystemWindowContext WindowContext?
+
+
+extern-library opengl "opengl32.dll"
+extern-library glu "glu32.dll"
+extern-library gdi "gdi32.dll"
+
+extern-func int32 ChoosePixelFormat (int32 hdc, int32 ppfd)            from gdi
+extern-func int32 SetPixelFormat (int32 hdc, int32 format, int32 ppfd) from gdi
+extern-func int32 SwapBuffers (int32 hdc)                              from gdi
+
+extern
+extern-func int32 wglCreateContext (int32 hdc)
+extern-func int32 wglDeleteContext (int32 hglrc)                     
+extern-func int32 wglMakeCurrent (int32 hdc, int32 hglrc) 
+extern-func void glBegin (int32 mode)
+extern-func void glEnd ()                                           
+extern-func void glVertex2i (int32 x, int32 y)                      
+extern-func void glVertex2f (float x, float y)                      
+extern-func void glVertex3i (int32 x, int32 y, int32 z)             
+extern-func void glVertex3f (float x, float y, float z)             
+extern-func void glColor3f (float r, float g, float b)              
+extern-func void glColor3ub (int8 r, int8 g, int8 b)
+extern-func void glColor4f (float r, float g, float b, float a)     
+extern-func void glClear (int32 mask)
+extern-func void glClearColor (float r, float g, float b, float a)
+extern-func void glMatrixMode (int32 mode)
+extern-func void glLoadIdentity ()                                  
+extern-func void glOrtho (float left, float right, float bottom, float top, float near, float far) 
+extern-func void glViewport (int32 x, int32 y, int32 width, int32 height)                          
+extern-func void glPushMatrix ()                                    
+extern-func void glPopMatrix ()                                     
+extern-func void glTranslatef (float x, float y, float z)           
+extern-func void glRotatef (float angle, float x, float y, float z) 
+extern-func void glScalef (float x, float y, float z)               
+extern-func void glPushAttrib (int32 mask)
+extern-func void glPopAttrib ()
+extern-func void glRasterPos2i (int32 x, int32 y) 
+extern-func void glCallLists (int32 n, int32 type, int32 lists)
+extern-func void glGenTextures (int32 n, int32* textures) 
+extern-func void glBindTexture (int32 target, int32 texture) 
+extern-func void glTexImage2D (int32 target, int32 level, int32 internalformat, int32 width, int32 height, int32 border, int32 format, int32 type, int32* pixels) 
+extern-func void glTexParameteri (int32 target, int32 pname, int32 param) 
+extern-func int32 glGetError () 
+extern-func void glFlush () 
+extern-func void glFinish ()
+extern from opengl
+
+using section {
+	asm
+	GL_POINTS         = 0
+	GL_LINES          = 1
+	GL_LINE_LOOP      = 2
+	GL_LINE_STRIP     = 3
+	GL_TRIANGLES      = 4
+	GL_TRIANGLE_STRIP = 5
+	GL_TRIANGLE_FAN   = 6
+	GL_QUADS          = 7
+	GL_QUAD_STRIP     = 8
+	GL_POLYGON        = 9
+    GL_MODELVIEW      = 0x1700
+    GL_PROJECTION     = 0x1701
+    GL_TEXTURE        = 0x1702
+    GL_COLOR_BUFFER_BIT   = 0x4000
+    GL_DEPTH_BUFFER_BIT   = 0x0100
+    GL_ACCUM_BUFFER_BIT   = 0x0200
+    GL_STENCIL_BUFFER_BIT = 0x0400
+    GL_ALL_ATTRIB_BITS    = 0xFFFFFFFF
+    GL_BYTE           = 0x1400
+    GL_UNSIGNED_BYTE  = 0x1401
+    GL_SHORT          = 0x1402
+    GL_UNSIGNED_SHORT = 0x1403
+    GL_INT            = 0x1404
+    GL_UNSIGNED_INT   = 0x1405
+    GL_FLOAT          = 0x1406
+    GL_TEXTURE_2D     = 0x0DE1
+    GL_RGB            = 0x1907
+    GL_RGBA           = 0x1908
+    GL_TEXTURE_MIN_FILTER = 0x2801
+    GL_TEXTURE_MAG_FILTER = 0x2800
+    GL_LINEAR         = 0x2601
+    GL_NEAREST        = 0x2600
+    PFD_DRAW_TO_WINDOW    = 0x00000004
+	PFD_SUPPORT_OPENGL    = 0x00000020
+	PFD_DOUBLEBUFFER      = 0x00000001
+	PFD_TYPE_RGBA         = 0
+	PFD_MAIN_PLANE        = 0
+    GL_VERTEX_SHADER      = 0x8B31
+	GL_FRAGMENT_SHADER    = 0x8B30
+	GL_COMPILE_STATUS     = 0x8B81
+	GL_LINK_STATUS        = 0x8B82
+    GL_FRAMEBUFFER        = 0x8D40
+	GL_COLOR_ATTACHMENT0  = 0x8CE0
+	GL_DEPTH_ATTACHMENT   = 0x8D00
+	GL_FRAMEBUFFER_COMPLETE = 0x8CD5
+	asm
+}

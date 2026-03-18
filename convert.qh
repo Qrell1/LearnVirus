@@ -1,0 +1,25 @@
+int32 ConvertToInt32 (T data) @T
+{
+	asm
+	mov eax, dword [data]
+    ret
+	asm
+}
+
+int16 ConvertToInt16 (T data) @T
+{
+	asm
+	xor eax, eax
+	mov ax, word [data]
+    ret
+	asm
+}
+
+int8 ConvertToInt8 (T data) @T
+{
+	asm
+	xor eax, eax
+	mov al, byte [data]
+    ret
+	asm
+}

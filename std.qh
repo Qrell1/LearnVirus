@@ -1,0 +1,27 @@
+
+
+// Random Part
+int32 random (int32 min, int32 max, int32 n)
+{
+	int32 seed = min
+	SystemTime sTime
+	GetSystemTime(&sTime)
+	int32 tick_ = (sTime.Year * 4) - sTime.Milliseconds + (n*3)
+    seed = (seed * tick_ + SumSystemTime() - (qsr.getTick() * 3) + (n*3)) % max // 73129
+    return seed
+}
+
+class Random {
+	int32 n
+
+    int32 next (int32 min, int32 max)
+	{
+		int32 seed = min
+		SystemTime sTime
+		GetSystemTime(&sTime)
+		int32 tick_ = (sTime.Year * 4) - sTime.Milliseconds + (this.n*3)
+		seed = (seed * tick_ + SumSystemTime() - (qsr.getTick() * 3) + (this.n*3)) % max
+		this.n += 1
+		return seed
+	}
+}

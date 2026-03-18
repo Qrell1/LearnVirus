@@ -1,0 +1,130 @@
+struct Point2D
+{
+	int32 x
+	int32 y
+}
+
+struct Point3D
+{
+	int32 x
+    int32 y
+    int32 z
+}
+
+struct ColorRGB
+{
+    float r
+    float g
+    float b
+}
+
+struct ColorRGBA
+{
+	float r
+    float g
+    float b
+    float a
+}
+struct ColorMania { ColorRGBA as ColorRGBA as2 }
+struct ColorRGBub
+{
+	int8 r
+    int8 g
+    int8 b
+}
+
+struct Rect
+{
+	int32 x
+    int32 y
+    int32 width
+    int32 height
+}
+
+struct Matrix4x4
+{
+	float m11
+    float m12
+    float m13
+    float m14
+    float m21
+    float m22
+    float m23
+    float m24
+    float m31
+    float m32
+    float m33
+    float m34
+    float m41
+    float m42
+    float m43
+    float m44
+}
+
+struct Texture
+{
+	int32 id
+    int32 width
+    int32 height
+    int32 format
+}
+
+struct Viewport
+{
+	int32 x
+    int32 y
+    int32 width
+    int32 height
+}
+
+struct PixelFormatDescriptor
+{
+    int16 nSize              //; sizeof(PIXELFORMATDESCRIPTOR)
+    int16 nVersion           //; версия (всегда 1)
+    int32 dwFlags            //; флаги (PFD_DRAW_TO_WINDOW и т.д.)
+    int8 iPixelType          //; тип пикселей (PFD_TYPE_RGBA)
+    int8 cColorBits          //; количество бит на цвет (32)
+    int8 cRedBits            //; бит на красный
+    int8 cRedShift           //; сдвиг красного
+    int8 cGreenBits          //; бит на зеленый
+    int8 cGreenShift         //; сдвиг зеленого
+    int8 cBlueBits           //; бит на синий
+    int8 cBlueShift          //; сдвиг синего
+    int8 cAlphaBits          //; бит на альфа
+    int8 cAlphaShift         //; сдвиг альфа
+    int8 cAccumBits          //; бит аккумуляции
+    int8 cAccumRedBits       //; бит аккумуляции красного
+    int8 cAccumGreenBits     //; бит аккумуляции зеленого
+    int8 cAccumBlueBits      //; бит аккумуляции синего
+    int8 cAccumAlphaBits     //; бит аккумуляции альфа
+    int8 cDepthBits          //; бит глубины (16/24/32)
+    int8 cStencilBits        //; бит трафарета
+    int8 cAuxBuffers         //; дополнительные буферы
+    int8 iLayerType          //; тип слоя
+    int8 bReserved           //; зарезервировано
+    int32 dwLayerMask        //; маска слоя
+    int32 dwVisibleMask      //; маска видимости
+    int32 dwDamageMask       //; маска повреждений
+}
+
+struct Shader
+{
+	int32 id                 //; ID шейдера
+    int32 type               //; GL_VERTEX_SHADER / GL_FRAGMENT_SHADER
+}
+
+struct ShaderProgram
+{
+	int32 id                 //; ID программы
+    int32 vertexShader       //; вершинный шейдер
+    int32 fragmentShader     //; фрагментный шейдер
+}
+
+struct Framebuffer
+{
+	int32 id                 //; ID фреймбуфера
+    int32 colorTexture       //; текстурa цвета
+    int32 depthTexture       //; текстурa глубины
+    int32 width              //; ширина
+    int32 height             //; высота
+}

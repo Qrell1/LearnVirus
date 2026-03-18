@@ -1,0 +1,1 @@
+C:\Users\1\source\repos\Qscript\QSicon\bin\Debug\QSicon.exe "..\qsr.qs" -asmmodule

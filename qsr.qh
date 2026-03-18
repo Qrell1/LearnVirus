@@ -1,0 +1,349 @@
+using "qsrt.qsr";
+include "generic.qh";
+include "time.qh";
+include "convert.qh";
+include "std.qh";
+
+using native {
+	int32 qsr.getTick(),
+	int32 malloc(int32 size),
+	void mfree(int32 ptr),
+	void mcopy(int32 ptr, int32 ptrto, int32 size),
+	void Console.WriteLine(int32 form, int32 data),
+	void Console.Write(int32 form, int32 data),
+	void qsr.init(int32 poolSize),
+	void qsr.exit(int32 errorCode)
+}
+
+
+using inline {
+	qsr.printf,
+	qsr.printva,
+	qsr.printv,
+	qsr.printc,
+	qsr.printvaf,
+    qsr.PoolPrint,
+    Console.endl,
+	Console.getch,
+	Console.cin
+}
+
+struct COORD {
+  short X
+  short Y
+}
+
+
+
+extern-library kernel "kernel32.dll"
+extern-library msvcrt "msvcrt.dll"
+extern-library user   "user32.dll"
+
+extern-func void ExitProcess (int32 codeError)         from kernel
+extern-func int8 SetConsoleTitle ()                    from kernel
+extern-func int32 GetStdHandle ()                      from kernel
+extern-func int8 SetConsoleTextAttribute ()            from kernel
+extern-func int8 SetConsoleCursorPosition ()           from kernel
+extern-func int32 GetProcessHeap ()                    from kernel
+extern-func void HeapAlloc ()                          from kernel
+extern-func int8 HeapFree ()                           from kernel
+extern-func void VirtualAlloc ()                       from kernel
+extern-func int8 VirtualFree ()                        from kernel 
+extern-func int8 WriteConsoleA ()                      from kernel
+extern-func int8 ReadConsoleA ()                       from kernel
+extern-func int32 GetModuleHandleA (int32 lpModuleName) from kernel
+extern-func int32 GetTickCount ()                      from kernel
+extern-func void GetSystemTime (int32 sTime)           from kernel
+extern-func void CreateDirectoryA ()                   from kernel
+
+
+extern-func void printf () from msvcrt
+extern-func void _getch ()  from msvcrt
+extern-func void scanf ()  from msvcrt
+
+extern-func void RegisterClassA ()   from user
+extern-func void CreateWindowExA ()  from user
+extern-func void DefWindowProcA ()   from user
+extern-func void GetMessageA ()      from user
+extern-func void TranslateMessage () from user
+extern-func void DispatchMessageA () from user
+extern-func void PostQuitMessage ()  from user
+extern-func int32 GetDC (int32 hWnd) from user
+
+//define POOL_non  0
+//define POOL_1kb  1024
+//define POOL_16kb 16384
+//define POOL_64kb 65536
+//define POOL_16mb 16777216
+//define POOL_32mb 33554432
+//define POOL_64mb 67108864
+//define POOL_96mb 100663296
+
+// My Qsr Types
+typedef half int16
+//  - если 64bit то он int32
+//  - если 32bit то он int16 
+typedef int64 int32 // ВРЕМЕННО
+typedef byte  int8
+typedef short int16
+typedef int   int32
+typedef long  int64 // ВРЕМЕННО
+typedef word  int16
+typedef dword int32
+typedef uhalf  half
+typedef uint64 int64
+typedef uint32 int32
+typedef uint16 int16
+typedef uint8  int8
+typedef ulong  long
+typedef uint   uint32
+typedef ushort uint16
+typedef ubyte  uint8
+
+// Windows Types
+typedef BYTE   byte
+typedef SHORT  short
+typedef DWORD  int
+typedef WORD   short
+typedef LONG   long
+typedef LPCSTR int8
+typedef BOOL   bool
+
+// Handles
+typedef PVOID       long
+typedef HANDLE      PVOID
+typedef HBITMAP     HANDLE
+typedef HBRUSH      HANDLE
+typedef HCOLORSPACE HANDLE
+typedef HCONV       HANDLE
+typedef HCONVLIST   HANDLE
+typedef HCURSOR     HANDLE
+typedef HDC         HANDLE
+typedef HDDEDATA    HANDLE
+typedef HDESK       HANDLE
+typedef HDROP       HANDLE
+typedef HDWP        HANDLE
+typedef HENHMETAFILE HANDLE
+
+typedef HFILE     int32
+typedef HFONT     HANDLE
+typedef HGDIOBJ   HANDLE
+typedef HGLOBAL   HANDLE
+typedef HHOOK     HANDLE
+typedef HINSTANCE HANDLE
+typedef HKEY      HANDLE
+typedef HKL       HANDLE
+typedef HLOCAL    HANDLE
+typedef HMENU     HANDLE
+typedef HMETAFILE HANDLE
+typedef HMODULE   HINSTANCE
+typedef HMONITOR  HANDLE
+typedef HPALETTE  HANDLE
+typedef HPEN      HANDLE
+typedef HRESULT   LONG
+typedef HRGN      HANDLE
+typedef HRSRC     HANDLE
+typedef HSZ       HANDLE
+typedef HWINSTA   HANDLE
+typedef HWND      HANDLE
+
+typedef INT       int
+typedef INT_PTR   long
+typedef INT8      int8
+typedef INT16     int16
+typedef INT32     int32
+typedef INT64     int64
+
+typedef LP        long
+typedef LANGID    WORD
+typedef LCID      DWORD
+typedef LCTYPE    DWORD
+typedef LGRPID    DWORD
+typedef LONGLONG  LONG // ВРЕМЕННО
+typedef LONG_PTR  LONG // ВРЕМЕННО
+typedef LONG32    int32
+typedef LONG64    int64
+typedef LPARAM    LONG_PTR
+typedef LPBOOL    long
+typedef LPBYTE    long
+typedef LPCOLORRREF long
+typedef LPCSTR      long
+typedef LPCWSTR     long
+//typedef LPCTSTR     LPCSTR // Хз типо я не знаю как это нормально сделать
+typedef LPDWORD     long
+typedef LPHANDLE    long
+typedef LPINT       long
+typedef LPLONG      long
+typedef LPSTR       long
+typedef LPTSTR      long
+typedef LPVOID      long
+typedef LPWORD      long
+typedef LPWSTR      long
+typedef LRESUALT    long    
+
+typedef LPCSTR    LP
+typedef LPCWSTR   LP  
+typedef LPSTR     LP 
+typedef LPWSTR    LP 
+typedef LPCTSTR   LP  
+typedef LPTSTR    LP  
+typedef LPCOLESTR LP 
+typedef LPOLESTR  LP 
+typedef LPCBYTE   LP
+typedef LPCVOID   LP
+typedef LPCCH     LP 
+typedef LPCWCH    LP
+typedef LPCH      LP
+typedef LPWCH     LP
+
+typedef LPBYTE    LP
+typedef LPWORD    LP
+typedef LPDWORD   LP
+typedef LPBOOL    LP
+typedef LPINT     LP
+typedef LPUINT    LP
+typedef LPLONG    LP
+typedef LPULONG   LP
+typedef LPVOID    LP
+typedef LPCVOID   LP
+
+typedef LPHANDLE              LP
+typedef LPSECURITY_ATTRIBUTES LP
+typedef LPOVERLAPPED          LP
+typedef LPWIN32_FIND_DATA     LP
+typedef LPFILETIME            LP
+typedef LPSYSTEMTIME          LP
+
+typedef LPTHREAD_START_ROUTINE LP
+typedef LPFIBER_START_ROUTINE  LP
+typedef LPTIMERAPCROUTINE      LP
+typedef LPWNDPROC              LP
+typedef LPHOOKPROC             LP
+typedef LPCALLBACK             LP
+typedef FARPROC                LP
+
+typedef LPRECT        LP
+typedef LPPOINT       LP
+typedef LPSIZE        LP
+typedef LPBITMAPINFO  LP
+typedef LPBITMAP      LP
+typedef LPCOLORREF    LP
+typedef LPLOGFONT     LP
+typedef LPPAINTSTRUCT LP
+
+typedef LPWNDCLASSEX      LP
+typedef LPCREATESTRUCT    LP
+typedef LPMINMAXINFO      LP
+typedef LPMDICREATESTRUCT LP
+typedef LPNMHDR           LP
+typedef LPNMLISTVIEW      LP
+typedef LPNMTREEVIEW      LP
+
+typedef LPCRITICAL_SECTION LP
+typedef LPRECTL            LP
+typedef LPPOINTL           LP
+typedef LPOLESTR           LP
+typedef LPMONITORINFO      LP
+typedef LPMONITORINFOEX    LP
+
+typedef P       long
+typedef SSIZE_T LONG_PTR
+typedef TBYTE   int8
+typedef TCHAR   int8
+typedef UCHAR   int8
+typedef UHALF_PTR uhalf
+
+typedef UINT8     uint8
+typedef UINT16    uint16
+typedef UINT32    uint32
+typedef UINT64    uint64
+typedef ULONG     ulong
+typedef USHORT    ushort
+typedef ULONGLONG LONGLONG
+typedef ULONG_PTR LONG_PTR
+typedef ULONG32   LONG32
+typedef ULONG64   LONG64
+typedef USN       LONGLONG
+typedef UINT_PTR  long
+
+define VOID   void
+define WINAPI __stdcall
+
+typedef WPARAM UINT_PTR
+
+struct _UNICODE_STRING {
+  USHORT  Length
+  USHORT  MaximumLength
+  P       Buffer // PWSTR
+}
+//typedef UNICODE_STRING _UNICODE_STRING
+
+//define HANDLE int32
+//define HFILE  int32
+//define HANDLE int32
+
+using section {
+	asm
+	    msg MSG
+	asm
+}
+            //library kernel, 'kernel32.dll',\;
+                    //msvcrt, 'msvcrt.dll',\
+					//gdi,'gdi32.dll',\
+					//opengl,'opengl32.dll',\
+                    //glu,'glu32.dll',\
+					//user, 'user32.dll'
+			//import gdi,\
+			    //ChoosePixelFormat,'ChoosePixelFormat',\
+				//SetPixelFormat,'SetPixelFormat',\
+				//SwapBuffers,'SwapBuffers'
+    
+            //import opengl,\
+                //wglCreateContext,'wglCreateContext',\
+				//wglDeleteContext,'wglDeleteContext',\
+				//wglMakeCurrent,'wglMakeCurrent',\
+				//glBegin,'glBegin',\
+				//glEnd,'glEnd',\
+				//glVertex2i,'glVertex2i',\
+				//glColor3f,'glColor3f',\
+				//glClear,'glClear',\
+				//glClearColor,'glClearColor',\
+				//glMatrixMode,'glMatrixMode',\
+				//glLoadIdentity,'glLoadIdentity',\
+				//glOrtho,'glOrtho',\
+				//glViewport,'glViewport',\
+				//glPushAttrib,'glPushAttrib',\
+				//glPopAttrib,'glPopAttrib',\
+                //glPushMatrix,'glPushMatrix',\
+				//glPopMatrix,'glPopMatrix',\
+                //glRasterPos2i,'glRasterPos2i',\
+                //glCallLists,'glCallLists'
+            //import kernel,\;
+                //ExitProcess, 'ExitProcess',\;
+                //SetConsoleTitle, 'SetConsoleTitleA',\;
+                //GetStdHandle, 'GetStdHandle',\;
+                //SetConsoleTextAttribute, 'SetConsoleTextAttribute',\;
+                //SetConsoleCursorPosition, 'SetConsoleCursorPosition',\;
+                //GetProcessHeap, 'GetProcessHeap',\;
+                //HeapAlloc, 'HeapAlloc',\;
+                //HeapFree, 'HeapFree',\;
+                //VirtualAlloc, 'VirtualAlloc',\;
+                //VirtualFree, 'VirtualFree',\;
+                //WriteConsoleA, 'WriteConsoleA',\;
+				//ReadConsoleA, 'ReadConsoleA',\;
+				//GetModuleHandle,'GetModuleHandleA',\;
+				//GetTickCount, 'GetTickCount',\;
+				//GetSystemTime_, 'GetSystemTime',\;
+				//CreateDirectoryA, 'CreateDirectoryA';
+            //import msvcrt,\;
+                //printf, 'printf',\;
+                //getch, '_getch',\;
+                //scanf, 'scanf';
+			//import user, \
+			    //RegisterClassA, 'RegisterClassA', \
+				//CreateWindowExA, 'CreateWindowExA', \
+				//DefWindowProcA, 'DefWindowProcA', \
+				//GetMessageA, 'GetMessageA', \
+				//TranslateMessage, 'TranslateMessage', \
+				//DispatchMessageA, 'DispatchMessageA', \
+				//PostQuitMessage, 'PostQuitMessage'

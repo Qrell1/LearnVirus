@@ -1,0 +1,77 @@
+
+struct SystemTime {
+	int16 Year
+	int16 Month	
+	int16 DayOfWeek		 
+	int16 Day
+	int16 Hour
+	int16 Minute
+	int16 Second
+	int16 Milliseconds
+}
+
+class StopWatcher {
+	int32 Milliseconds
+	int32 Total
+
+    void Start ()
+	{
+		this.Milliseconds = qsr.getTick()
+	}
+
+    void Stop ()
+	{
+		this.Total = qsr.getTick() - this.Milliseconds
+	}
+}
+
+class Timer {
+	int32 Total
+    int32 Bool
+
+    void Start ()
+	{
+		Total = 0
+		Bool = 1
+	}
+
+    void Update (int32 delta)
+	{
+		if Bool == 1
+		{
+			Total += delta
+        }
+    }
+
+    void Stop ()
+	{
+		Bool = 0
+	}
+}
+
+int32 SumSystemTime ()
+{
+	SystemTime sTime?
+	GetSystemTime(&sTime)
+	int32 sum = sTime.Year + sTime.Month + sTime.DayOfWeek
+	            + sTime.Day + sTime.Hour + sTime.Minute
+	            + sTime.Second + sTime.Milliseconds
+	return sum
+}
+
+void PrintSystemTime ()
+{
+	asm
+	local sTime SystemTime 0
+	asm
+	GetSystemTime(&sTime)
+	Console.endl()
+	printq @string ("Year: ")         printq @int32 (sTime.Year)        Console.endl()
+	printq @string ("Month: ")        printq @int32 (sTime.Month)       Console.endl()
+	printq @string ("DayOfWeek: ")    printq @int32 (sTime.DayOfWeek)   Console.endl()
+	printq @string ("Day: ")          printq @int32 (sTime.Day)         Console.endl()
+	printq @string ("Hour: ")         printq @int32 (sTime.Hour)        Console.endl()
+	printq @string ("Minute: ")       printq @int32 (sTime.Minute)      Console.endl()
+	printq @string ("Second: ")       printq @int32 (sTime.Second)      Console.endl()
+	printq @string ("Milliseconds: ") printq @int32 (sTime.Milliseconds)Console.endl()
+}

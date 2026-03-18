@@ -1,0 +1,1121 @@
+format PE console
+
+entry start
+include 'win32a.inc'
+
+macro qsr.printf message
+{
+    push ebx
+    mov edi, message
+    call qsr_len_string
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push ebx
+    push edi
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop ebx
+}
+macro qsr.printfl message
+{
+	push message
+	push strFormat
+	call [printf]
+	add esp, 8
+	Console.endl
+}
+macro qsr.printc 
+{
+	mov [qsr.Console.ConsoleChar], al
+ 
+    push ebx
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push 1
+    push qsr.Console.ConsoleChar
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop ebx
+}
+macro qsr.printv message
+{
+	push message
+	push varFormat
+	call [printf]
+	add esp, 8
+}
+macro qsr.printva message
+{
+	push ebx
+    push eax
+    mov eax, [message]
+    call qsr_uint_to_str
+    call qsr_len_string
+    push 0
+    push qsr.Console.ConsoleTempPtr
+    push ebx
+    push edi
+    push [qsr.Console.ConsoleHandle]
+    call [WriteConsoleA]
+    pop eax
+    pop ebx
+}
+macro qsr.printvaf message
+{
+	sub esp, 8
+    fld dword [message]
+    fstp qword [esp]
+    push floatFormat
+    call [printf]
+    add esp, 12
+}
+macro Console.getch 
+{
+	call [getch]
+}
+macro Console.endl 
+{
+	push endl
+	push strFormat
+	call [printf]
+	add esp, 8
+}
+macro Console.cin var
+{
+	lea eax, [var]
+	push eax
+	push varFormat
+	call [scanf]
+	add esp, 8
+}
+macro Console.clear 
+{
+	invoke  WriteConsoleA, [qsr.Console.ConsoleHandle], clear, 6, qsr.Console.ConsoleTempPtr, 0
+}
+macro Array.init list,len,size
+{
+	lea ecx, [list]
+	mov [ecx], esp
+    mov eax, size
+	mov ebx, len
+	imul eax, ebx
+	sub esp, eax
+	mov eax, len
+	
+	lea ecx, [list]
+	add ecx, 4
+	mov [ecx], dword eax
+	
+	lea ecx, [list]
+	add ecx, 8
+    mov [ecx], dword size
+}
+macro Array.clear list
+{
+	mov eax, [list.Count]
+	mov ebx, [list.ItemSize]
+	imul eax, ebx
+	add esp, eax
+	mov [list.Items], 0
+	mov [list.Count], 0
+	mov [list.ItemSize], 0
+}
+macro qsr.GetConsoleHandle 
+{
+    invoke GetStdHandle, STD_OUTPUT_HANDLE
+    mov [qsr.Console.ConsoleHandle], eax
+    xor eax, eax
+}
+macro qsr.GetHeapHandle 
+{
+	invoke GetProcessHeap
+	mov [qsr.Heap.Handle], eax
+	
+	
+	
+	xor eax, eax
+}
+macro qsr.AllocPool poolSize
+{
+    push dword [poolSize]
+	push dword HEAP_ZERO_MEMORY
+	push dword [qsr.Heap.Handle]
+	call [HeapAlloc]
+	
+	
+    
+	mov [qsr.Pool.PoolPtr], eax
+	mov ecx, [poolSize]
+	mov [qsr.Pool.PoolMaxSize], ecx
+	mov [qsr.Pool.PoolEnd], eax
+}
+macro qsr.PoolPrint 
+{
+push str_const_0
+call printq_string
+mov eax, [qsr.Heap.Handle]
+push eax
+call printq_int32
+Console.endl 
+push str_const_1
+call printq_string
+mov eax, [qsr.Pool.PoolPtr]
+push eax
+call printq_int32
+Console.endl 
+push str_const_2
+call printq_string
+mov eax, [qsr.Pool.PoolTotalSize]
+push eax
+call printq_int32
+Console.endl 
+push str_const_3
+call printq_string
+mov eax, [qsr.Pool.PoolMaxSize]
+push eax
+call printq_int32
+Console.endl 
+push str_const_4
+call printq_string
+mov eax, [qsr.Pool.PoolItemCount]
+push eax
+call printq_int32
+Console.endl 
+}
+struct heap
+    Handle dd 0
+    Error dd 0
+ends
+struct poolFrame
+    PoolPtr dd 0
+    PoolMaxSize dd 0
+    PoolTotalSize dd 0
+    PoolEnd dd 0
+    PoolItemCount dd 0
+ends
+struct console
+    ConsoleHandle dd 0
+    ConsoleBuffer dd 0
+    ConsoleTempPtr dd 0
+    ConsoleCharBuffer db 0
+    ConsoleChar db 0
+    ConsoleBytesRead dd 0
+ends
+struct Qsr
+    Console console
+    Pool poolFrame
+    Heap heap
+ends
+struct Person
+    age dd 0
+ends
+macro Nums.init list,len,size
+{
+    lea ecx, [list]
+	mov [ecx], esp
+    mov eax, size
+	mov ebx, len
+	imul eax, ebx
+	sub esp, eax
+	mov eax, len
+	
+	lea ecx, [list]
+	add ecx, 4
+	mov [ecx], dword eax
+	
+	lea ecx, [list]
+	add ecx, 8
+    mov [ecx], dword size
+}
+struct StringArray
+    value dd 0
+    count dd 0
+    itemSize dd 0
+ends
+struct String
+    str dd 0
+ends
+struct Array_int32
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+struct Nums_int32
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+struct Nums_string
+    Items dd 0
+    Count dd 0
+    ItemSize dd 0
+ends
+
+section '.data' data readable writable
+str_const_0 db 'HeapHandle = ', 0
+str_const_1 db 'PoolPtr = ', 0
+str_const_2 db 'PoolTotalSize = ', 0
+str_const_3 db 'PoolMaxSize = ', 0
+str_const_4 db 'PoolItemCount = ', 0
+str_const_5 db '<<< QscriptNt Console >>', 0
+str_const_6 db 'list.Items[5]=', 0
+str_const_7 db '%s', 0
+str_const_8 db '%d', 0
+str_const_9 db 'FDF', 0
+str_const_10 db 'Console.ConsoleHandle = ', 0
+str_const_11 db 'Testing', 0
+str_const_12 db 'print(', 0
+str_const_13 db ')', 0
+str_const_14 db 'Fuck Off', 0
+str_const_15 db 'ds', 0
+str_const_16 db '12.4f >= 12.3f', 0
+str_const_17 db 'push in low pool', 0
+str_const_18 db 'Tick:', 0
+str_const_19 db 'Tick Fibonacci:', 0
+str_const_20 db 'Sudo', 0
+str_const_21 db 'Sudo2', 0
+str_const_22 db 'Numbers.Items: ', 0
+str_const_23 db 'Numbers.Count: ', 0
+str_const_24 db 'Numbers.ItemSize: ', 0
+str_const_25 db '9 => ', 0
+str_const_26 db 'Items[', 0
+str_const_27 db '] = ', 0
+str_const_28 db 'Player', 0
+str_const_29 db 'Hello World!!', 0
+str_const_30 db 'String Testing1...', 0
+str_const_31 db 'String Testing2...', 0
+str_const_32 db 'test', 0
+str_const_33 db '== -- test == test -- ==', 0
+str_const_34 db '0', 0
+SIZE_HEAP = sizeof.heap
+SIZE_POOLFRAME = sizeof.poolFrame
+SIZE_CONSOLE = sizeof.console
+SIZE_QSR = sizeof.Qsr
+PoolSegment dd 0
+PoolSegments dd 0
+qsr Qsr 0
+arrayHeapTest dd 0
+arrayHeapTestI dd 0
+arrayHeapTestI2 dd 0
+SIZE_PERSON = sizeof.Person
+qrell dd 0
+age dd 0
+list Array_int32 0
+i dd 0
+sd dd 0
+gchars Array_int32 0
+gcharsI dd 0
+chsi dd 0
+adsd dd 0
+dff db 0
+dffs dd 0
+size dd 0
+sizeofTest dw 0
+float_const_0 dd 12.4f
+float_const_1 dd 12.3f
+tick dd 0
+tick2 dd 0
+dsss dd 0
+tick2_temp dd 0
+sudo Array_int32 0
+sudo2 Array_int32 0
+numbers Nums_int32 0
+ini dd 0
+ni dd 0
+StringTest Nums_string 0
+strI1 dd 0
+SIZE_STRINGARRAY = sizeof.StringArray
+SIZE_STRING = sizeof.String
+fg String 0
+testStr StringArray 0
+ifStrTest String 0
+irepn dd 0
+irep dd 0
+SIZE_ARRAY_INT32 = sizeof.Array_int32
+SIZE_NUMS_INT32 = sizeof.Nums_int32
+SIZE_NUMS_STRING = sizeof.Nums_string
+
+section '.code' code readable executable
+proc qsr_len_string
+push edi
+xor ebx,ebx
+.next_iter: 
+cmp [edi+ebx],byte 0
+je .close
+inc ebx
+jmp .next_iter
+.close: 
+pop edi
+ret 
+qsr_len_string.retn: 
+ret 
+endp 
+proc qsr_uint_to_str
+push ebx
+push ecx
+push edx
+mov edi,qsr.Console.ConsoleBuffer + 11
+mov byte [edi],0
+dec edi
+mov ebx,10
+test eax,eax
+jnz .convert
+mov byte [edi],'0'
+jmp .done
+.convert: 
+xor edx,edx
+div ebx
+add dl,'0'
+mov [edi],dl
+dec edi
+test eax,eax
+jnz .convert
+.done: 
+inc edi
+pop edx
+pop ecx
+pop ebx
+ret 
+qsr_uint_to_str.retn: 
+ret 
+endp 
+proc qsr.getTick var:DWORD
+local resualt dd 0
+invoke GetTickCount
+mov [resualt],eax
+mov eax,dword [resualt]
+jmp qsr.getTick.return
+qsr.getTick.return: 
+qsr.getTick.retn: 
+ret 
+endp 
+proc malloc size:DWORD
+add [size],4
+mov eax,dword [size]
+local resualtPtr dd 0
+mov eax,dword [qsr.Pool.PoolEnd]
+add eax,4
+mov [resualtPtr],eax
+mov ecx,dword [qsr.Pool.PoolEnd]
+mov edx,dword [size]
+sub edx,4
+mov [ecx],edx
+mov eax,dword [qsr.Pool.PoolEnd]
+add eax,[size]
+mov [qsr.Pool.PoolEnd],eax
+mov eax,dword [qsr.Pool.PoolTotalSize]
+add eax,[size]
+mov [qsr.Pool.PoolTotalSize],eax
+inc [qsr.Pool.PoolItemCount]
+mov eax,dword [qsr.Pool.PoolItemCount]
+mov eax,dword [resualtPtr]
+jmp malloc.return
+malloc.return: 
+malloc.retn: 
+ret 
+endp 
+proc Console.Write form:DWORD ,data:DWORD
+local format dd 0
+mov eax,dword [form]
+cmp [eax],word '%s'
+je .ConsoleWrite.fl1
+jne .ConsoleWrite.fl2
+.ConsoleWrite.fl1: 
+mov [format],0
+jmp .ConsoleWrite.fl
+.ConsoleWrite.fl2: 
+mov [format],1
+.ConsoleWrite.fl: 
+cmp [format],0
+jne false0
+mov eax,dword [data]
+qsr.printf eax
+false0: 
+cmp [format],1
+jne false1
+qsr.printva data
+false1: 
+Console.Write.retn: 
+ret 
+endp 
+proc Console.WriteLine form:DWORD ,data:DWORD
+local format dd 0
+mov eax,dword [form]
+cmp [eax],word '%s'
+je .ConsoleWriteLine.fl1
+jne .ConsoleWriteLine.fl2
+.ConsoleWriteLine.fl1: 
+mov [format],0
+jmp .ConsoleWriteLine.fl
+.ConsoleWriteLine.fl2: 
+mov [format],1
+.ConsoleWriteLine.fl: 
+cmp [format],0
+jne false2
+mov eax,dword [data]
+qsr.printf eax
+false2: 
+cmp [format],1
+jne false3
+qsr.printva data
+false3: 
+Console.endl 
+Console.WriteLine.retn: 
+ret 
+endp 
+proc write form:DWORD ,data:DWORD
+local format dd 0
+mov eax,dword [form]
+cmp [eax],word '%s'
+je .ConsoleWrite.fl1
+jne .ConsoleWrite.fl2
+.ConsoleWrite.fl1: 
+mov [format],0
+jmp .ConsoleWrite.fl
+.ConsoleWrite.fl2: 
+mov [format],1
+.ConsoleWrite.fl: 
+cmp [format],0
+jne false4
+mov eax,dword [data]
+qsr.printf eax
+false4: 
+cmp [format],1
+jne false5
+qsr.printva data
+false5: 
+write.retn: 
+ret 
+endp 
+proc writeln form:DWORD ,data:DWORD
+local format dd 0
+mov eax,dword [form]
+cmp [eax],word '%s'
+je .ConsoleWriteLine.fl1
+jne .ConsoleWriteLine.fl2
+.ConsoleWriteLine.fl1: 
+mov [format],0
+jmp .ConsoleWriteLine.fl
+.ConsoleWriteLine.fl2: 
+mov [format],1
+.ConsoleWriteLine.fl: 
+cmp [format],0
+jne false6
+mov eax,dword [data]
+qsr.printf eax
+false6: 
+cmp [format],1
+jne false7
+qsr.printva data
+false7: 
+Console.endl 
+writeln.retn: 
+ret 
+endp 
+proc qsr.init poolSize:DWORD
+qsr.GetConsoleHandle 
+qsr.GetHeapHandle 
+qsr.AllocPool poolSize
+qsr.printfl str_const_5
+qsr.init.retn: 
+ret 
+endp 
+proc fntest1
+mov eax,32
+jmp fntest1.return
+fntest1.return: 
+fntest1.retn: 
+ret 
+endp 
+proc fntest2 n:DWORD
+mov eax,dword [n]
+add eax,[n]
+jmp fntest2.return
+fntest2.return: 
+fntest2.retn: 
+ret 
+endp 
+proc fibonacci nnn:DWORD
+cmp [nnn],1
+jg false10
+mov eax,dword [nnn]
+jmp fibonacci.return
+jmp elses0
+false10: 
+mov eax,dword [nnn]
+sub eax,1
+push eax
+call fibonacci
+push eax
+mov eax,dword [nnn]
+sub eax,2
+push eax
+call fibonacci
+mov ebx,eax
+pop eax
+add eax,ebx
+jmp fibonacci.return
+elses0: 
+fibonacci.return: 
+fibonacci.retn: 
+ret 
+endp 
+proc printq_string data:DWORD
+local format dd 0
+mov [format],dword 1
+local form db 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+cmp [format],0
+jne false12
+mov eax,dword [data]
+qsr.printf eax
+false12: 
+cmp [format],1
+jne false13
+cmp [data],0
+jne .falseD
+qsr.printf str_const_34
+.falseD: 
+qsr.printva data
+false13: 
+printq_string.retn: 
+ret 
+endp 
+proc printq_int32 data:DWORD
+local format dd 0
+mov [format],dword 1
+local form dd 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+cmp [format],0
+jne false14
+mov eax,dword [data]
+qsr.printf eax
+false14: 
+cmp [format],1
+jne false15
+cmp [data],0
+jne .falseD
+qsr.printf str_const_34
+.falseD: 
+qsr.printva data
+false15: 
+printq_int32.retn: 
+ret 
+endp 
+proc printq_int8 data:DWORD
+local format dd 0
+mov [format],dword 1
+local form db 0
+mov [form],250
+add [form],10
+jc .trueP
+jmp .falseP
+.trueP: 
+mov [format],0
+.falseP: 
+cmp [format],0
+jne false16
+mov eax,dword [data]
+qsr.printf eax
+false16: 
+cmp [format],1
+jne false17
+cmp [data],0
+jne .falseD
+qsr.printf str_const_34
+.falseD: 
+qsr.printva data
+false17: 
+printq_int8.retn: 
+ret 
+endp 
+start: ;START MAIN
+mov [PoolSegment],dword 1024
+mov eax, dword [PoolSegment]
+imul eax,1536
+mov [PoolSegments],eax
+mov eax, dword [PoolSegments]
+push eax
+call qsr.init
+mov eax,40
+push 40
+call malloc
+mov [arrayHeapTest],eax
+iter0: 
+mov eax, dword [arrayHeapTestI]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [arrayHeapTest]
+mov eax, dword [arrayHeapTestI]
+mov [ebx+ecx],eax
+inc [arrayHeapTestI]
+cmp [arrayHeapTestI],10
+jne iter0
+mov eax,5
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [arrayHeapTest]
+mov [ebx+ecx],dword 3232
+iter1: 
+mov eax, dword [arrayHeapTestI2]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [arrayHeapTest]
+mov eax, dword [ebx+ecx]
+push eax
+call printq_int32
+Console.endl 
+inc [arrayHeapTestI2]
+cmp [arrayHeapTestI2],10
+jne iter1
+mov ecx, dword [qrell]
+mov dword [ecx],14
+mov ecx, dword [qrell]
+mov edx, dword [ecx]
+mov eax,edx
+mov [age],eax
+mov eax, dword [age]
+push eax
+call printq_int32
+Console.endl 
+qsr.PoolPrint 
+Array.init list,10,4
+mov [i],dword 0
+xor ecx,ecx
+iter2: 
+push ecx
+mov eax, dword [i]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [list.Items]
+mov eax, dword [i]
+add eax,[i]
+mov [ebx+ecx],eax
+add [i],1
+pop ecx
+inc ecx
+cmp ecx,10
+jne iter2
+push str_const_6
+push str_const_7
+call Console.Write
+mov eax,9
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [list.Items]
+mov eax, dword [ebx+ecx]
+push eax
+push str_const_8
+call Console.WriteLine
+push str_const_9
+push str_const_7
+call Console.WriteLine
+push str_const_10
+push str_const_7
+call Console.Write
+mov eax, dword [qsr.Console.ConsoleHandle]
+push eax
+push str_const_8
+call Console.WriteLine
+mov eax,12
+push 12
+push str_const_8
+call Console.WriteLine
+mov [sd],dword 32
+mov eax, dword [sd]
+push eax
+push str_const_8
+call Console.WriteLine
+call fntest1
+push eax
+push str_const_8
+call Console.WriteLine
+mov eax,64
+push 64
+call fntest2
+push eax
+push str_const_8
+call Console.WriteLine
+mov eax,256
+push 256
+call fntest2
+push eax
+push str_const_8
+call writeln
+push str_const_11
+push str_const_7
+call write
+mov eax,1
+push 1
+push str_const_8
+call writeln
+Console.endl 
+push str_const_12
+call printq_string
+mov eax,3
+push 3
+call printq_int32
+push str_const_13
+call printq_string
+Console.endl 
+push str_const_14
+call printq_string
+Array.init gchars,16,4
+xor ecx,ecx
+iter3: 
+push ecx
+mov eax, dword [gcharsI]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [gchars.Items]
+mov [ebx+ecx],dword 0
+add [gcharsI],1
+pop ecx
+inc ecx
+cmp ecx,16
+jne iter3
+mov eax, dword [gchars.Items]
+add eax,4
+push eax
+push strFormat
+call [scanf]
+add esp,8
+mov [chsi],dword 0
+mov eax,4
+push 4
+mov ebx,SIZE_ARRAY_INT32
+mov ebx,eax
+pop eax
+add eax,ebx
+mov [adsd],eax
+xor ecx,ecx
+iter4: 
+push ecx
+mov eax, dword [chsi]
+mov ecx,eax
+mov ebx, dword [gchars.Items]
+mov al,byte [ebx+ecx]
+cmp al,' '
+je fsff
+cmp al,0
+je fsff
+qsr.printc 
+fsff: 
+add [chsi],1
+pop ecx
+inc ecx
+cmp ecx,64
+jne iter4
+mov eax, dword [gchars.Items]
+push eax
+push strFormat
+call [printf]
+add esp,8
+Console.endl 
+mov [size],dword 5
+inc [size]
+mov eax, dword [size]
+push eax
+call printq_int32
+mov eax, dword [size]
+inc [size]
+push eax
+call printq_int32
+Console.endl 
+mov eax, dword [size]
+push eax
+call printq_int32
+lea eax,[size]
+push eax
+call printq_int32
+Console.endl 
+mov eax,2
+push 2
+call printq_int32
+Console.endl 
+mov eax,SIZE_ARRAY_INT32
+push SIZE_ARRAY_INT32
+call printq_int32
+Console.endl 
+push str_const_15
+call printq_string
+Console.endl 
+mov eax, dword [float_const_0]
+cmp eax,[float_const_1]
+jl false8
+push str_const_16
+call printq_int8
+false8: 
+mov eax,SIZE_ARRAY_INT32
+cmp eax,256
+jge false9
+push str_const_17
+call printq_int8
+false9: 
+Console.getch 
+call qsr.getTick
+mov [tick],eax
+call qsr.getTick
+push eax
+mov eax, dword [tick]
+mov ebx,eax
+pop eax
+sub eax,ebx
+mov [tick],eax
+push str_const_18
+call printq_string
+mov eax, dword [tick]
+push eax
+call printq_int32
+Console.endl 
+lea eax,[size]
+push eax
+call printq_int32
+call qsr.getTick
+mov [tick2],eax
+mov eax,36
+push 36
+call fibonacci
+mov [dsss],eax
+call qsr.getTick
+mov [tick2_temp],eax
+mov eax, dword [tick2_temp]
+sub eax,[tick2]
+mov [tick2],eax
+push str_const_19
+call printq_string
+mov eax, dword [tick2]
+push eax
+call printq_int32
+lea eax,[list]
+mov [sudo],eax
+Console.endl 
+push str_const_20
+call printq_string
+mov eax, dword [sudo]
+push eax
+call printq_int32
+Console.endl 
+lea eax,[sudo]
+mov [sudo2],eax
+Console.endl 
+push str_const_21
+call printq_string
+mov eax, dword [sudo2]
+push eax
+call printq_int32
+Console.endl 
+Nums.init numbers,10,4
+iter5: 
+mov eax, dword [ini]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov [ebx+ecx],dword 0
+inc [ini]
+cmp [ini],10
+jne iter5
+mov eax,0
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov [ebx+ecx],dword 12
+mov eax,2
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov [ebx+ecx],dword 32
+mov eax,9
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov [ebx+ecx],dword 64
+Console.endl 
+push str_const_22
+call printq_int8
+mov eax, dword [numbers.Items]
+push eax
+call printq_int32
+Console.endl 
+push str_const_23
+call printq_int8
+mov eax, dword [numbers.Count]
+push eax
+call printq_int32
+Console.endl 
+push str_const_24
+call printq_int8
+mov eax, dword [numbers.ItemSize]
+push eax
+call printq_int32
+push str_const_25
+call printq_int8
+mov eax,9
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov eax, dword [ebx+ecx]
+push eax
+call printq_int32
+Console.endl 
+iter6: 
+Console.endl 
+push str_const_26
+call printq_int8
+qsr.printva ni
+push str_const_27
+call printq_int8
+mov eax, dword [ni]
+mov ecx,eax
+imul ecx,4
+mov ebx, dword [numbers.Items]
+mov eax, dword [ebx+ecx]
+push eax
+call printq_int32
+inc [ni]
+cmp [ni],10
+jne iter6
+Nums.init StringTest,32,1
+iter7: 
+mov eax, dword [strI1]
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov [ebx+ecx],dword 0
+inc [strI1]
+cmp [strI1],32
+jne iter7
+mov eax, dword [StringTest.Items]
+push eax
+push strFormat
+call [scanf]
+add esp,8
+mov eax, dword [StringTest.Items]
+push eax
+push strFormat
+call [printf]
+add esp,8
+Console.endl 
+mov eax,0
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov al,'H'
+mov [ebx+ecx],al
+mov eax,1
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov al,'E'
+mov [ebx+ecx],al
+mov eax,2
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov al,'L'
+mov [ebx+ecx],al
+mov eax,3
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov al,'L'
+mov [ebx+ecx],al
+mov eax,4
+mov ecx,eax
+imul ecx,1
+mov ebx, dword [StringTest.Items]
+mov al,'O'
+mov [ebx+ecx],al
+mov eax, dword [StringTest.Items]
+push eax
+call printq_int8
+mov eax,str_const_28
+mov [StringTest.Items],eax
+mov eax, dword [StringTest.Items]
+push eax
+call printq_int8
+mov eax,str_const_29
+mov [fg],eax
+Console.endl 
+mov eax, dword [fg]
+push eax
+call printq_string
+mov eax,str_const_30
+mov [testStr.value],eax
+Console.endl 
+mov eax, dword [testStr]
+push eax
+call printq_string
+mov eax,str_const_31
+mov [testStr.value],eax
+Console.endl 
+mov eax, dword [testStr]
+push eax
+call printq_string
+mov eax,str_const_32
+mov [ifStrTest],eax
+mov eax, dword [ifStrTest]
+mov ebx,str_const_32
+cmp eax,ebx
+jne false11
+push str_const_33
+call printq_string
+false11: 
+mov [irepn],dword 1
+rept 10 {
+} 
+mov [irep],dword 1
+rept 10 {
+Console.endl 
+qsr.printva irep
+inc [irep]
+mov eax,[irep]
+} 
+Console.getch 
+section '.data'data readable writable
+varFormat db '%d',0
+strFormat db '%s',0
+floatFormat db '%f',0
+endl db 10,13,'',0
+clear db 1Bh,'[2J',1Bh,'[H',0
+STD_OUTPUT_HANDLE =-11
+STD_INPUT_HANDLE =-10
+MEM_COMMIT =1000h
+MEM_RESERVE =2000h
+PAGE_READWRITE =4h
+section '.idata'import data readable
+library kernel,'kernel32.dll',\
+msvcrt, 'msvcrt.dll',\
+user, 'user32.dll'
+import kernel,\
+ExitProcess, 'ExitProcess',\
+SetConsoleTitle, 'SetConsoleTitleA',\
+GetStdHandle, 'GetStdHandle',\
+SetConsoleTextAttribute, 'SetConsoleTextAttribute',\
+SetConsoleCursorPosition, 'SetConsoleCursorPosition',\
+GetProcessHeap, 'GetProcessHeap',\
+HeapAlloc, 'HeapAlloc',\
+HeapFree, 'HeapFree',\
+VirtualAlloc, 'VirtualAlloc',\
+VirtualFree, 'VirtualFree',\
+WriteConsoleA, 'WriteConsoleA',\
+ReadConsoleA, 'ReadConsoleA',\
+GetTickCount, 'GetTickCount'
+import msvcrt,\
+printf, 'printf',\
+getch, '_getch',\
+scanf, 'scanf'
+import user,\
+MessageBox, 'MessageBoxA'
